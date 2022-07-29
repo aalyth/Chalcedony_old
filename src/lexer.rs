@@ -63,9 +63,6 @@ pub enum TOKEN{
     TokenIdentifier(String)
     /*
     TOKEN_CHAR, // to add string token
-    TOKEN_FUNC,
-    TOKEN_LET,
-    TOKEN_VARNAME
     */
 }
 
@@ -84,17 +81,17 @@ fn to_digit(s: &str) -> TOKEN{
     let _result: i64 = s.parse().unwrap();
     if _result < 0{
         match _result{
-            -128                       ..= 0              => return TOKEN::TokenInt8(_result as i8),
-            -32_768                    ..= -129           => return TOKEN::TokenInt16(_result as i16),
-            -2_147_483_648             ..= -32_769        => return TOKEN::TokenInt32(_result as i32),
+            -128           ..= 0       => return TOKEN::TokenInt8(_result as i8),
+            -32_768        ..= -129    => return TOKEN::TokenInt16(_result as i16),
+            -2_147_483_648 ..= -32_769 => return TOKEN::TokenInt32(_result as i32),
             _ => return TOKEN::TokenInt64(_result as i64),
         }
     }else{
         let _resut: u64 = _result as u64;        
         match _result{
-            0             ..=  255                        => return TOKEN::TokenUint8(_result as u8), 
-            256           ..=  65_535                     => return TOKEN::TokenUint16(_result as u16),
-            65_536        ..=  4_294_967_295              => return TOKEN::TokenUint32(_result as u32),
+            0      ..= 255           => return TOKEN::TokenUint8(_result as u8), 
+            256    ..= 65_535        => return TOKEN::TokenUint16(_result as u16),
+            65_536 ..= 4_294_967_295 => return TOKEN::TokenUint32(_result as u32),
             _ => return TOKEN::TokenUint64(_result as u64),
         }
     }
@@ -150,15 +147,12 @@ pub fn lexer(src_code: &str) -> Vec<TOKEN>{
         ("fn", KEYWORD::Fn),
         ("return", KEYWORD::Return),
     ]);
+
     let re = regex::Regex::new(r#"(\n)|("[a-zA-Z0-9 ]+")|(=>)|(!=)|(==)|([a-zA-Z0-9\-_]+)|[\(\):=\+\-\*/<>\#]"#).unwrap();
 
     for line in lines{
-        //let tokens: Vec<&str> = i.split(' ').collect();
-
-        //let j: &str = &k.replace("\t", "");
         for matches in re.captures_iter(line){
             let token: &str = &matches[0];
-    //            println!("{}", j);
             if token.is_empty() {continue;}
             if token.chars().nth(0).unwrap() == '#'{
                 break;
