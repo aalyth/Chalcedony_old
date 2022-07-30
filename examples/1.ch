@@ -1,13 +1,13 @@
 # comment
 
 fn asdf(w: i8) => none:
-	for i to w
+	for i to w:
 		print(i)		
 	end
 end
 
-fn compare(n: i8) => none:
-	if n > 0:
+fn compare(n: i8, n2: f32) => none:
+	if n2 > 0:
 		print("positive")
 	else:
 		print("negative")

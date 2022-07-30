@@ -1,7 +1,7 @@
 extern crate regex;
 
 #[derive(Debug, Copy, Clone)]
-enum KEYWORD{
+pub enum KEYWORD{
     Auto,
     None,
     I8,
@@ -23,12 +23,13 @@ enum KEYWORD{
     To,
     While,
     End,
-    Fn
+    Fn,
+    Return
     // Continue and Break 
 }
 
 #[derive(Debug)]
-enum TOKEN{
+pub enum TOKEN{
     TokenInt8(i8),
     TokenInt16(i16),
     TokenInt32(i32),
@@ -39,6 +40,7 @@ enum TOKEN{
     TokenUint64(u64),
     TokenFloat32(f32),
     TokenFloat64(f64),
+    TokenString(String),
     TokenPlus, // +
     TokenMinus, // -
     TokenMul, // *
@@ -54,13 +56,13 @@ enum TOKEN{
     TokenGt, // >
     TokenLtEq, // <=
     TokenGtEq, // >=
+    TokenColon, // :
+    TokenReturn, // =>
+    TokenNewLine, // \n
     TokenKeyword(KEYWORD),
     TokenIdentifier(String)
     /*
     TOKEN_CHAR, // to add string token
-    TOKEN_FUNC,
-    TOKEN_LET,
-    TOKEN_VARNAME
     */
 }
 
@@ -79,17 +81,17 @@ fn to_digit(s: &str) -> TOKEN{
     let _result: i64 = s.parse().unwrap();
     if _result < 0{
         match _result{
-            -128                       ..= 0              => return TOKEN::TokenInt8(_result as i8),
-            -32_768                    ..= -129           => return TOKEN::TokenInt16(_result as i16),
-            -2_147_483_648             ..= -32_769        => return TOKEN::TokenInt32(_result as i32),
+            -128           ..= 0       => return TOKEN::TokenInt8(_result as i8),
+            -32_768        ..= -129    => return TOKEN::TokenInt16(_result as i16),
+            -2_147_483_648 ..= -32_769 => return TOKEN::TokenInt32(_result as i32),
             _ => return TOKEN::TokenInt64(_result as i64),
         }
     }else{
         let _resut: u64 = _result as u64;        
         match _result{
-            0             ..=  255                        => return TOKEN::TokenUint8(_result as u8), 
-            256           ..=  65_535                     => return TOKEN::TokenUint16(_result as u16),
-            65_536        ..=  4_294_967_295              => return TOKEN::TokenUint32(_result as u32),
+            0      ..= 255           => return TOKEN::TokenUint8(_result as u8), 
+            256    ..= 65_535        => return TOKEN::TokenUint16(_result as u16),
+            65_536 ..= 4_294_967_295 => return TOKEN::TokenUint32(_result as u32),
             _ => return TOKEN::TokenUint64(_result as u64),
         }
     }
@@ -116,7 +118,7 @@ fn to_float(s: &str) -> TOKEN{
     }
 }
 
-fn lexer(src_code: &str) -> Vec<TOKEN>{
+pub fn lexer(src_code: &str) -> Vec<TOKEN>{
     println!("{}", src_code);
     let lines = src_code.split('\n');
     let mut result = Vec::<TOKEN>::new();
@@ -143,36 +145,41 @@ fn lexer(src_code: &str) -> Vec<TOKEN>{
         ("while", KEYWORD::While),
         ("end", KEYWORD::End),
         ("fn", KEYWORD::Fn),
+        ("return", KEYWORD::Return),
     ]);
-    let re = regex::Regex::new(r#"("[a-zA-Z0-9 ]+")|(!\=)|(\=\=)|(\w+)|[\(\)\:\=\+\-\*\/\<\>\#]"#).unwrap();
 
-    for i in lines{
-        if i.is_empty() {continue;}
-        let tokens = i.split(' ');
+    let re = regex::Regex::new(r#"(\n)|("[a-zA-Z0-9 ]+")|(=>)|(!=)|(==)|([a-zA-Z0-9\-_]+)|[\(\):=\+\-\*/<>\#]"#).unwrap();
 
-        for k in re.captures_iter(tokens){
-            let j: &str = &k.replace("\t", "");
-            if j.is_empty() {continue;}
-            if is_digit(j){
-                result.push(to_digit(j)); 
-                continue;
-            }
-
-            if is_float(j){
-                result.push(to_float(j));
-                continue;
-            }
-
-            if j.chars().nth(0).unwrap() == '#'{
+    for line in lines{
+        for matches in re.captures_iter(line){
+            let token: &str = &matches[0];
+            if token.is_empty() {continue;}
+            if token.chars().nth(0).unwrap() == '#'{
                 break;
             }
 
-            if keywords.contains_key(j){
-                result.push(TOKEN::TokenKeyword(*keywords.get(j).unwrap())); 
+            if is_digit(token){
+                result.push(to_digit(token)); 
                 continue;
             }
 
-            match j{
+            if is_float(token){
+                result.push(to_float(token));
+                continue;
+            }
+
+
+            if token.chars().nth(0).unwrap() == '"' && token.chars().nth(token.len() - 1).unwrap() == '"'{
+                result.push(TOKEN::TokenString(token.to_string()));
+                continue;
+            }
+
+            if keywords.contains_key(token){
+                result.push(TOKEN::TokenKeyword(*keywords.get(token).unwrap())); 
+                continue;
+            }
+
+            match token{
                 "+"  => result.push(TOKEN::TokenPlus),
                 "-"  => result.push(TOKEN::TokenMinus),
                 "*"  => result.push(TOKEN::TokenMul),
@@ -188,44 +195,12 @@ fn lexer(src_code: &str) -> Vec<TOKEN>{
                 ">"  => result.push(TOKEN::TokenGt),
                 "<=" => result.push(TOKEN::TokenLtEq),
                 ">=" => result.push(TOKEN::TokenGtEq),
-                _    => result.push(TOKEN::TokenIdentifier(j.to_string())),
+                ":"  => result.push(TOKEN::TokenColon),
+                "=>" => result.push(TOKEN::TokenReturn),
+                _    => result.push(TOKEN::TokenIdentifier(token.to_string())),
             }
         }
-
+        result.push(TOKEN::TokenNewLine);
     }
     return result;
-}
-
-fn main(){
-   let tokens = lexer(r#"
-# comment
-
-fn asdf(w: i8) => none:
-	for i to w
-		print(i)		
-	end
-end
-
-fn compare(n: i8) => none:
-	if n > 0:
-		print("positive")
-	else:
-		print("negative")
-	end
-	if n == 69:
-		print("nice")
-	elif n != 69:
-		print("not nice")
-	end
-end
-
-fn main() => i32:
-    auto n1 = 15 # this converts it to type u8
-    i8 n2 = 5 # another way of variable declaration
-    return 0
-end
-"#);
-   for i in tokens{
-       println!("{:?}", i);
-   }
 }
