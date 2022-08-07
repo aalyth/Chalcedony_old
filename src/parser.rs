@@ -10,9 +10,8 @@ macro_rules! get_token_value{
     };
 }
 
-
 #[derive(Debug)]
-enum VarType{
+pub enum VarType{
     I8,
     I16,
     I32,
@@ -46,8 +45,27 @@ impl From<Keyword> for VarType{
     }
 }
 
+impl VarType{
+    fn to_c(&self) -> String{
+        match *self{
+            VarType::I8   => return "short ".to_string(),
+            VarType::I16  => return "int ".to_string(),
+            VarType::I32  => return "long ".to_string(),
+            VarType::I64  => return "long long ".to_string(),
+            VarType::U8   => return "unsigned short ".to_string(),
+            VarType::U16  => return "unsigned int ".to_string(),
+            VarType::U32  => return "unsigned long ".to_string(),
+            VarType::U64  => return "unsigned long long ".to_string(),
+            VarType::F32  => return "float ".to_string(),
+            VarType::F64  => return "double ".to_string(),
+            VarType::Str  => return "str ".to_string(),
+            VarType::None => return "void ".to_string(),
+        }
+    }
+}
+
 #[derive(Debug)]
-enum OperatorType{
+pub enum OperatorType{
     Plus,
     Minus,
     Mul,
@@ -86,7 +104,7 @@ impl From<&Token> for OperatorType{
 }
 
 #[derive(Debug)]
-struct NodeValueInt{
+pub struct NodeValueInt{
     value: i64,
     var_type: VarType,
 }
@@ -95,10 +113,14 @@ impl NodeValueInt{
     fn new(value: i64, var_type: VarType) -> Self{
         NodeValueInt {value: value, var_type: var_type}
     }
+
+    fn to_c(&self) -> String{
+        self.value.to_string()
+    }
 }
 
 #[derive(Debug)]
-struct NodeValueUInt{
+pub struct NodeValueUInt{
     value: u64,
     var_type: VarType,
 }
@@ -107,10 +129,14 @@ impl NodeValueUInt{
     fn new(value: u64, var_type: VarType) -> Self{
         NodeValueUInt {value: value, var_type: var_type}
     }
+
+    fn to_c(&self) -> String{
+        self.value.to_string()
+    }
 }
 
 #[derive(Debug)]
-struct NodeValueFloat{
+pub struct NodeValueFloat{
     value: f64,
     var_type: VarType,
 }
@@ -119,10 +145,14 @@ impl NodeValueFloat{
     fn new(value: f64, var_type: VarType) -> Self{
         NodeValueFloat {value: value, var_type: var_type}
     }
+
+    fn to_c(&self) -> String{
+        self.value.to_string()
+    }
 }
 
 #[derive(Debug)]
-struct NodeValueString{
+pub struct NodeValueString{
     value: String,
     var_type: VarType,
 }
@@ -131,10 +161,14 @@ impl NodeValueString{
     fn new(value: String, var_type: VarType) -> Self{
         NodeValueString {value: value, var_type: var_type}
     }
+
+    fn to_c(&self) -> String{
+        self.value.to_owned()
+    }
 }
 
 #[derive(Debug)]
-struct NodeVariableCall{
+pub struct NodeVariableCall{
     name: String,
 }
 
@@ -145,14 +179,14 @@ impl NodeVariableCall{
 }
 
 #[derive(Debug)]
-struct NodeVariableInitialization{
+pub struct NodeVariableInitialization{
     name: String,
     value: Option<Box<Node>>,
     var_type: VarType,
 }
 
 #[derive(Debug)]
-struct NodeBinaryExpression{
+pub struct NodeBinaryExpression{
     operands: [Box<Node>;2],
     operator: OperatorType,
 }
@@ -164,19 +198,19 @@ impl NodeBinaryExpression{
 }
 
 #[derive(Debug)]
-struct NodeIfStatement{
+pub struct NodeIfStatement{
     condition: Box<Node>,
     body: Vec<Box<Node>>,
 }
 
 #[derive(Debug)]
-struct NodeWhileLoop{
+pub struct NodeWhileLoop{
     condition: Box<Node>,
     body: Vec<Box<Node>>,
 }
 
 #[derive(Debug)]
-struct NodeFunctionDefinition{
+pub struct NodeFunctionDefinition{
     name: String,
     arg_names: Vec<String>,
     arg_types: Vec<VarType>,
@@ -184,8 +218,30 @@ struct NodeFunctionDefinition{
     body: Vec<Box<Node>>,
 }
 
+impl NodeFunctionDefinition{
+    fn to_c(&self) -> String{
+        let mut result: String = "".to_string().to_owned();
+        result.push_str(&self.return_type.to_c()[..]);
+        result.push_str(&self.name[..]);
+        result.push_str("(");
+
+        for i in 0..self.arg_names.len(){
+            result.push_str(&self.arg_types[i].to_c()[..]);
+            result.push_str(&self.arg_names[i][..]);
+            if i != self.arg_names.len() - 1 {result.push_str(", ");}
+        }
+        result.push_str("){\n");
+
+        for i in &self.body{
+            result.push_str(&(&i).to_c()[..]);
+        }
+        result.push_str("}\n");
+        return result;
+    }
+}
+
 #[derive(Debug)]
-struct NodeFunctionCall{
+pub struct NodeFunctionCall{
     name: String,
     args: Vec<Box<Node>>,
 }
@@ -214,6 +270,17 @@ impl NodeFunctionCall{
             result.args.push(Box::new(get_call(&tokens[i])));
         }
         // if tokens[tokens.len() - 1] != '(' {panic!()} - todo!
+        return result;
+    }
+
+    fn to_c(&self) -> String{
+        let mut result: String = self.name.to_owned();
+        if self.name == "print" {result.push_str("f");}
+        result.push_str("(");
+        for i in &self.args{
+            result.push_str(&(&i).to_c()[..]);
+        }
+        result.push_str(");\n");
         return result;
     }
 }
@@ -257,6 +324,18 @@ impl Node{
             Token::TokenFloat64(val) => return Node::ValueFloat(NodeValueFloat::new(*val as f64, VarType::F64)),
             Token::TokenString(val)  => return Node::ValueString(NodeValueString::new(val.to_string(), VarType::Str)),
             Token::TokenIdentifier(_val) => return Node::VariableCall(NodeVariableCall::new(token)),
+            _ => todo!(),
+        }
+    }
+
+    pub fn to_c(&self) -> String{
+        match self{
+            Node::ValueInt(val) => return val.to_c(),
+            Node::ValueUInt(val) => return val.to_c(),
+            Node::ValueFloat(val) => return val.to_c(),
+            Node::ValueString(val) => return val.to_c(),
+            Node::FunctionDefinition(val) => return val.to_c(),
+            Node::FunctionCall(val) => return val.to_c(),
             _ => todo!(),
         }
     }

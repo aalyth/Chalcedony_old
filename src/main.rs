@@ -1,5 +1,6 @@
 mod lexer;
 mod parser;
+mod interpreter;
 
 fn main() {
     /*
@@ -9,12 +10,17 @@ fn main() {
     */
     let source_code = std::fs::read_to_string("1.ch").expect("File not found!");
     let tokens = lexer::lexer(&source_code);
+    /*
     for i in &tokens{
         println!("{:?}", i);
     }
     println!("");
+    */
     let ast = parser::parse(tokens);
-    for i in ast{
+    /*
+    for i in &ast{
         println!("{:#?}", i);
     }
+    */
+    interpreter::interpret(ast, "1.ch".to_string());
 }
