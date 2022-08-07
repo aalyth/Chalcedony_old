@@ -7,3 +7,7 @@ edition = "2021"
 
 [dependencies]
 regex = "1.6.0"
+
+[[bin]]
+name = "chal"
+path = "src/main.rs"
