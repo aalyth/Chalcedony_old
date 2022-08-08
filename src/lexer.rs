@@ -150,7 +150,7 @@ pub fn lexer(src_code: &str) -> Vec<Token>{
         ("return", Keyword::Return),
     ]);
 
-    let re = regex::Regex::new(r#"(\n)|(".+")|(\*\*)|(//)|(=>)|(!=)|(==)|([a-zA-Z0-9\-_]+)|[\(\):=\+\-\*/<>\#]"#).unwrap();
+    let re = regex::Regex::new(r#"(\n)|(".+")|(\*\*)|(//)|(=>)|(!=)|(==)|(\d+(\.\d*)*)|([a-zA-Z0-9\-_]+)|[\(\):=\+\-\*/<>\#]"#).unwrap();
 
     for line in lines{
         for matches in re.captures_iter(line){

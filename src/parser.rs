@@ -1,5 +1,10 @@
+extern crate lazy_static;
+extern crate regex;
+
 use crate::lexer::Token;
 use crate::lexer::Keyword;
+use std::collections::HashMap;
+use std::sync::Mutex;
 
 macro_rules! get_token_value{
     ($token: expr, $token_type: path) =>{
@@ -10,7 +15,21 @@ macro_rules! get_token_value{
     };
 }
 
-#[derive(Debug)]
+// here we contain the different variables and their types - this is used
+// so we can easily format the print output
+lazy_static::lazy_static!{
+    static ref VARIABLES: Mutex<HashMap<String, VarType>> = Mutex::new(HashMap::<String, VarType>::new());
+}
+
+fn variables_insert(string: &String, var_type: &VarType){
+    VARIABLES.lock().unwrap().insert(string.to_string(), *var_type);
+}
+
+fn variables_get(string: &String) -> VarType{
+    *VARIABLES.lock().unwrap().get(string).unwrap()
+}
+
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum VarType{
     I8,
     I16,
@@ -23,24 +42,26 @@ pub enum VarType{
     F32,
     F64,
     Str,
+    Auto,
     None,
 }
 
 impl From<Keyword> for VarType{
     fn from(keyword: Keyword) -> VarType{
         match keyword{
-            Keyword::I8  => return VarType::I8,
-            Keyword::I16 => return VarType::I16,
-            Keyword::I32 => return VarType::I32,
-            Keyword::I64 => return VarType::I64,
-            Keyword::U8  => return VarType::U8,
-            Keyword::U16 => return VarType::U16,
-            Keyword::U32 => return VarType::U32,
-            Keyword::U64 => return VarType::U64,
-            Keyword::F32 => return VarType::F32,
-            Keyword::F64 => return VarType::F64,
-            Keyword::Str => return VarType::Str,
-            _            => return VarType::None, 
+            Keyword::I8   => return VarType::I8,
+            Keyword::I16  => return VarType::I16,
+            Keyword::I32  => return VarType::I32,
+            Keyword::I64  => return VarType::I64,
+            Keyword::U8   => return VarType::U8,
+            Keyword::U16  => return VarType::U16,
+            Keyword::U32  => return VarType::U32,
+            Keyword::U64  => return VarType::U64,
+            Keyword::F32  => return VarType::F32,
+            Keyword::F64  => return VarType::F64,
+            Keyword::Str  => return VarType::Str,
+            Keyword::Auto => return VarType::Auto,
+            _             => return VarType::None, 
         }
     }
 }
@@ -60,10 +81,28 @@ impl VarType{
             VarType::F64  => return "double ".to_string(),
             VarType::Str  => return "str ".to_string(),
             VarType::None => return "void ".to_string(),
+            VarType::Auto => todo!(),
+        }
+    }
+
+    fn to_c_printf(&self) -> String{
+        match *self{
+            VarType::I8   => return "%hd".to_string(),
+            VarType::I16  => return "%d".to_string(),
+            VarType::I32  => return "%ld".to_string(),
+            VarType::I64  => return "%lld".to_string(),
+            VarType::U8   => return "%hu".to_string(),
+            VarType::U16  => return "%u".to_string(),
+            VarType::U32  => return "%lu".to_string(),
+            VarType::U64  => return "%llu".to_string(),
+            VarType::F32  => return "%f".to_string(),
+            VarType::F64  => return "%lf".to_string(),
+            VarType::Str  => return "%s".to_string(),
+            _ => todo!(),
         }
     }
 }
-
+ 
 #[derive(Debug)]
 pub enum OperatorType{
     Plus,
@@ -176,13 +215,87 @@ impl NodeVariableCall{
     fn new(token: &Token) -> Self{
         NodeVariableCall{name: get_token_value!(token, Token::TokenIdentifier).unwrap().to_string()}
     }
+
+    fn to_c(&self) -> String{
+        self.name.to_owned()
+    }
 }
 
 #[derive(Debug)]
 pub struct NodeVariableInitialization{
     name: String,
-    value: Option<Box<Node>>,
+    value: Box<Node>,
     var_type: VarType,
+}
+
+impl NodeVariableInitialization{
+    fn new(tokens: &Vec<Token>) -> Self{
+        let mut result = NodeVariableInitialization {
+            name: get_token_value!(&tokens[1], Token::TokenIdentifier).unwrap().to_string(), 
+            value: Box::new(Node::new(&tokens[3])), // this is always a node to a value 
+            var_type: VarType::from(*(get_token_value!(&tokens[0], Token::TokenKeyword).unwrap()))
+        };
+        if result.var_type == VarType::Auto {
+            result.var_type = match &tokens[3]{
+                Token::TokenInt8(_val)    => VarType::I8,
+                Token::TokenInt16(_val)   => VarType::I16,
+                Token::TokenInt32(_val)   => VarType::I32,
+                Token::TokenInt64(_val)   => VarType::I64,
+                Token::TokenUInt8(_val)   => VarType::U8,
+                Token::TokenUInt16(_val)  => VarType::U16,
+                Token::TokenUInt32(_val)  => VarType::U32,
+                Token::TokenUInt64(_val)  => VarType::U64,
+                Token::TokenFloat32(_val) => VarType::F32,
+                Token::TokenFloat64(_val) => VarType::F64,
+                Token::TokenString(_val)  => VarType::Str,
+                _ => VarType::Auto,
+            };
+        }
+        variables_insert(&result.name, &result.var_type);
+        return result;
+    }
+
+    fn to_c(&self) -> String{
+       let mut result: String = self.var_type.to_c().to_owned();
+       result.push_str(&self.name.to_owned());
+       result.push_str(" = ");
+       result.push_str(&self.value.to_c().to_owned());
+       result.push_str(";\n");
+       return result;
+    }
+}
+
+#[derive(Debug)]
+pub struct NodeVariableDeclaration{
+    name: String,
+    var_type: VarType,
+}
+
+impl NodeVariableDeclaration{
+    fn new(tokens: &Vec<Token>) -> Self{
+        let result = NodeVariableDeclaration {
+            name: get_token_value!(&tokens[1], Token::TokenIdentifier).unwrap().to_string(), 
+            var_type: VarType::from(*(get_token_value!(&tokens[0], Token::TokenKeyword).unwrap()))
+        };
+        variables_insert(&result.name, &result.var_type);
+        return result;
+    }
+
+    fn to_c(&self) -> String{
+       let mut result: String = self.var_type.to_c().to_owned();
+       result.push_str(&self.name.to_owned());
+       result.push_str(";\n");
+       return result;
+    }
+}
+
+fn generate_variable(tokens: &Vec<Token>) -> Node{
+    // if tokens.len() < 3 panic
+    match tokens[2]{
+        Token::TokenEq => return Node::VariableInitialization(NodeVariableInitialization::new(tokens)),
+        Token::TokenNewLine => return Node::VariableDeclaration(NodeVariableDeclaration::new(tokens)),
+        _ => todo!(),
+    }
 }
 
 #[derive(Debug)]
@@ -263,6 +376,19 @@ fn get_call(token: &Token) -> Node{
     }
 }
 
+fn format_printf(string: String) -> Vec<Box<Node>>{
+    let formatting = regex::Regex::new(r"(?:[^\\])(\{\w+[^\\\}]\})").unwrap();    
+    let mut result = string.to_owned();
+    let mut vec_result = Vec::<Box<Node>>::new();
+    for matches in formatting.captures_iter(&string){
+        let var_name: String = (&matches[0][2..matches[0].len()-1]).to_string();
+        vec_result.push(Box::new(Node::VariableCall(NodeVariableCall::new(&Token::TokenIdentifier(var_name.to_owned())))));
+        result = str::replace(&result, &matches[0][1..], &VarType::to_c_printf(&variables_get(&var_name)));
+    }
+    vec_result.insert(0, Box::new(Node::ValueString(NodeValueString::new(result, VarType::Str))));
+    return vec_result;
+}
+
 impl NodeFunctionCall{
     fn new(tokens: &Vec<Token>) -> Self{
         let mut result: NodeFunctionCall = NodeFunctionCall {name: get_token_value!(&tokens[0], Token::TokenIdentifier).unwrap().to_string(), args: Vec::new()};
@@ -275,10 +401,21 @@ impl NodeFunctionCall{
 
     fn to_c(&self) -> String{
         let mut result: String = self.name.to_owned();
-        if self.name == "print" {result.push_str("f");}
+        if self.name == "print" {
+            result.push_str("f(");
+            let new_args: Vec<Box<Node>> = format_printf(self.args[0].to_c());
+            for i in 0..new_args.len(){
+                result.push_str(&new_args[i].to_c().to_owned());
+                if i != new_args.len() - 1 {result.push_str(", ");}
+            }
+            result.push_str(");\n");
+            return result;
+        }
+
         result.push_str("(");
-        for i in &self.args{
-            result.push_str(&(&i).to_c()[..]);
+        for i in 0..self.args.len(){
+            result.push_str(&self.args[i].to_c().to_owned());
+            if i != self.args.len() - 1 {result.push_str(", ");}
         }
         result.push_str(");\n");
         return result;
@@ -292,7 +429,8 @@ pub enum Node{
     ValueFloat(NodeValueFloat),
     ValueString(NodeValueString),
     VariableCall(NodeVariableCall),
-    VariableInitialization(NodeVariableInitialization), // this handles both declaration and definition
+    VariableInitialization(NodeVariableInitialization), 
+    VariableDeclaration(NodeVariableDeclaration), // the definition of a variable is a binary expression
     BinaryExpression(NodeBinaryExpression),
     IfStatement(NodeIfStatement), // need to add else handling
     WhileLoop(NodeWhileLoop), 
@@ -330,33 +468,31 @@ impl Node{
 
     pub fn to_c(&self) -> String{
         match self{
-            Node::ValueInt(val) => return val.to_c(),
-            Node::ValueUInt(val) => return val.to_c(),
-            Node::ValueFloat(val) => return val.to_c(),
-            Node::ValueString(val) => return val.to_c(),
-            Node::FunctionDefinition(val) => return val.to_c(),
-            Node::FunctionCall(val) => return val.to_c(),
+            Node::ValueInt(val)               => return val.to_c(),
+            Node::ValueUInt(val)              => return val.to_c(),
+            Node::ValueFloat(val)             => return val.to_c(),
+            Node::ValueString(val)            => return val.to_c(),
+            Node::VariableCall(val)           => return val.to_c(),
+            Node::VariableInitialization(val) => return val.to_c(),
+            Node::VariableDeclaration(val)    => return val.to_c(),
+            Node::FunctionDefinition(val)     => return val.to_c(),
+            Node::FunctionCall(val)           => return val.to_c(),
             _ => todo!(),
         }
     }
 }
 
 fn generate_node(tokens: Vec<Token>) -> Node{
-    /*
-    if tokens[0] == Token::TokenIdentifier{
-        if tokens[1] == Token::TokenRPar{
-            return NodeFunctionCall::new(tokens);
-        }
-        // break if tokens.len() > 3
-        return NodeBinaryExpression::new(tokens);
-    }
-    */
     if tokens.len() == 1 {return Node::new(&tokens[0]);}
     match &tokens[0]{
         Token::TokenIdentifier(_val) => return match tokens[1]{
-                                                  Token::TokenLPar => Node::FunctionCall(NodeFunctionCall::new(&tokens)),
-                                                  _ => Node::BinaryExpression(NodeBinaryExpression::new(&tokens)),
-                                               },
+            Token::TokenLPar => Node::FunctionCall(NodeFunctionCall::new(&tokens)),
+            _ => Node::BinaryExpression(NodeBinaryExpression::new(&tokens)),
+        },
+        Token::TokenKeyword(_val) => return match &tokens[1]{
+            Token::TokenIdentifier(__val) => return generate_variable(&tokens),
+            _ => todo!(),
+        },
         _ => todo!(),
         //Token::TokenKeyword(Keyword::If) => return 
     }
