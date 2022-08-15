@@ -1,6 +1,8 @@
 mod lexer;
 mod parser;
 mod interpreter;
+mod stack;
+mod nodes;
 
 fn main() {
     /*
@@ -17,10 +19,8 @@ fn main() {
     println!("");
     */
     let ast = parser::parse(tokens);
-    /*
     for i in &ast{
         println!("{:#?}", i);
     }
-    */
     interpreter::interpret(ast, "1.ch".to_string());
 }

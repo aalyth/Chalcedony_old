@@ -43,24 +43,28 @@ pub enum Token{
     TokenFloat64(f64),
     // to add TokenChar
     TokenString(String),
-    TokenPlus, // +
-    TokenMinus, // -
-    TokenMul, // *
-    TokenDiv, // /
+    TokenPlus,     // +
+    TokenMinus,    // -
+    TokenMul,      // *
+    TokenDiv,      // /
     TokenFloorDiv, // //
-    TokenExp, // **
-    TokenLPar, // (
-    TokenRPar, // )
-    TokenEq, // =
-    TokenEqEq, // ==
-    TokenNEq, // !=
-    TokenLt, // <
-    TokenGt, // >
-    TokenLtEq, // <=
-    TokenGtEq, // >=
-    TokenColon, // :
-    TokenReturn, // =>
-    TokenNewLine, // \n
+    TokenExp,      // **
+    TokenLPar,     // (
+    TokenRPar,     // )
+    TokenEq,       // =
+    TokenEqEq,     // ==
+    TokenNEq,      // !=
+    TokenLt,       // <
+    TokenGt,       // >
+    TokenLtEq,     // <=
+    TokenGtEq,     // >=
+    TokenPlusEq,   // +=
+    TokenMinusEq,  // -=
+    TokenMulEq,    // *=
+    TokenDivEq,    // /=
+    TokenColon,    // :
+    TokenReturn,   // =>
+    TokenNewLine,  // \n
     TokenKeyword(Keyword),
     TokenIdentifier(String)
     /*
@@ -150,14 +154,14 @@ pub fn lexer(src_code: &str) -> Vec<Token>{
         ("return", Keyword::Return),
     ]);
 
-    let re = regex::Regex::new(r#"(\n)|(".+")|(\*\*)|(//)|(=>)|(!=)|(==)|(\d+(\.\d*)*)|([a-zA-Z0-9\-_]+)|[\(\):=\+\-\*/<>\#]"#).unwrap();
+    let re = regex::Regex::new(r#"(#.*)|(\n)|(".+")|(\*\*)|(//)|(->)|([=!<>\+\-\*/]=)|(\d+(\.\d*)*)|([a-zA-Z0-9\-_]+)|[\(\):=\+\-\*/<>\#]"#).unwrap();
 
     for line in lines{
         for matches in re.captures_iter(line){
             let token: &str = &matches[0];
             if token.is_empty() {continue;}
             if token.chars().nth(0).unwrap() == '#'{
-                break;
+                break; 
             }
 
             if is_digit(token){
@@ -197,8 +201,12 @@ pub fn lexer(src_code: &str) -> Vec<Token>{
                 ">"  => result.push(Token::TokenGt),
                 "<=" => result.push(Token::TokenLtEq),
                 ">=" => result.push(Token::TokenGtEq),
+                "+=" => result.push(Token::TokenPlusEq),
+                "-=" => result.push(Token::TokenMinusEq),
+                "*=" => result.push(Token::TokenMulEq),
+                "/=" => result.push(Token::TokenDivEq),
                 ":"  => result.push(Token::TokenColon),
-                "=>" => result.push(Token::TokenReturn),
+                "->" => result.push(Token::TokenReturn),
                 _    => result.push(Token::TokenIdentifier(token.to_string())),
             }
         }

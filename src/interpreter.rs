@@ -1,4 +1,4 @@
-use crate::parser::Node;
+use crate::nodes::Node;
 
 pub fn interpret(nodes: Vec<Node>, file_name: String){
     let mut file_name: String = file_name[..file_name.len() - 3].to_string().to_string(); // this is so we remove the ".ch"
@@ -12,5 +12,5 @@ pub fn interpret(nodes: Vec<Node>, file_name: String){
     std::fs::write(&file_name, file_data).expect("Unable to crate file.");
 
     std::process::Command::new("gcc").arg(&file_name).spawn().unwrap().wait();
-    std::fs::remove_file(file_name);
+    //std::fs::remove_file(file_name);
 }
