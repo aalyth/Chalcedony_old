@@ -73,6 +73,7 @@ pub enum Token{
 }
 
 fn is_digit(s: &str) -> bool{
+    if s.len() == 1 && s.chars().nth(0).unwrap() == '-' { return false;}
     for i in s.chars(){
         match i{
             '0'..='9' => continue,
@@ -125,7 +126,6 @@ fn to_float(s: &str) -> Token{
 }
 
 pub fn lexer(src_code: &str) -> Vec<Token>{
-    println!("{}", src_code);
     let lines = src_code.split('\n');
     let mut result = Vec::<Token>::new();
     let keywords = std::collections::HashMap::from([

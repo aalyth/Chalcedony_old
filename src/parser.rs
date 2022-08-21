@@ -36,7 +36,7 @@ pub fn variables_get(string: &String) -> VarType{
     *VARIABLES.lock().unwrap().get(string).unwrap()
 }
 
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone, Copy, Hash, Eq)]
 pub enum VarType{
     I8,
     I16,
@@ -127,7 +127,7 @@ impl VarType{
     }
 }
  
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum OperatorType{
     Plus,
     Minus,
@@ -199,10 +199,6 @@ impl OperatorType{
         }
     }
 }
-
-
-
-
 
 /*
 fn split_tokens(tokens: Vec<Tokens>) -> Vec<Vec<&Tokens>>{

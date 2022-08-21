@@ -1,10 +1,10 @@
 use crate::lexer::Token;
 use crate::parser::VarType;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct NodeValueInt{
         value: i64,
-        var_type: VarType,
+        pub var_type: VarType,
 }
 
 impl NodeValueInt{
@@ -17,10 +17,10 @@ impl NodeValueInt{
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct NodeValueUInt{
     value: u64,
-    var_type: VarType,
+    pub var_type: VarType,
 }
 
 impl NodeValueUInt{
@@ -33,10 +33,10 @@ impl NodeValueUInt{
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct NodeValueFloat{
     value: f64,
-    var_type: VarType,
+    pub var_type: VarType,
 }
 
 impl NodeValueFloat{
@@ -49,10 +49,10 @@ impl NodeValueFloat{
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct NodeValueString{
     value: String,
-    var_type: VarType,
+    pub var_type: VarType,
 }
 
 impl NodeValueString{
@@ -64,5 +64,4 @@ impl NodeValueString{
         self.value.to_owned()
     }
 }
-
 

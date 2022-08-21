@@ -13,7 +13,7 @@ use functions::*;
 use crate::lexer::*;
 use crate::parser::*;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Node{
     ValueInt(NodeValueInt),
     ValueUInt(NodeValueUInt),
@@ -40,6 +40,7 @@ pub enum Node{
 }
 
 impl Node{
+    // convert this function to 'From<&Token> for Node'
     fn new(token: &Token) -> Self{
         match token{
             Token::TokenInt8(val)    => return Node::ValueInt(NodeValueInt::new(*val as i64, VarType::I8)),

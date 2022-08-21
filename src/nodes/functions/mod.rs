@@ -3,7 +3,7 @@ use crate::parser::*;
 use super::Node;
 use crate::nodes::*;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct NodeFunctionDefinition{
     name: String,
     arg_names: Vec<String>,
@@ -35,7 +35,7 @@ impl NodeFunctionDefinition{
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct NodeFunctionCall{
     name: String,
     args: Vec<Box<Node>>,
@@ -62,11 +62,13 @@ pub fn format_printf(string: String) -> Vec<Box<Node>>{
     let formatting = regex::Regex::new(r"(?:[^\\])(\{\w+[^\\\}]\})").unwrap();    
     let mut result = string.to_owned();
     let mut vec_result = Vec::<Box<Node>>::new();
+
     for matches in formatting.captures_iter(&string){
         let var_name: String = (&matches[0][2..matches[0].len()-1]).to_string();
         vec_result.push(Box::new(Node::VariableCall(NodeVariableCall::new(&Token::TokenIdentifier(var_name.to_owned())))));
         result = str::replace(&result, &matches[0][1..], &VarType::to_c_printf(&variables_get(&var_name)));
     }
+
     vec_result.insert(0, Box::new(Node::ValueString(NodeValueString::new(result, VarType::Str))));
     return vec_result;
 }
@@ -90,6 +92,7 @@ impl NodeFunctionCall{
                 result.push_str(&new_args[i].to_c().to_owned());
                 if i != new_args.len() - 1 {result.push_str(", ");}
             }
+
             result.push_str(")");
             return result;
         }
@@ -99,6 +102,7 @@ impl NodeFunctionCall{
             result.push_str(&self.args[i].to_c().to_owned());
             if i != self.args.len() - 1 {result.push_str(", ");}
         }
+
         result.push_str(")");
         return result;
     }
@@ -106,27 +110,38 @@ impl NodeFunctionCall{
 
 pub fn generate_function(tokens: &Vec<Token>) -> Node{
     let mut i = 0;
-    while tokens[i] != Token::TokenKeyword(Keyword::Fn) {i += 1;}
-    let mut result: NodeFunctionDefinition = NodeFunctionDefinition {name: "".to_string(), arg_names: Vec::new(), arg_types: Vec::new(), body: Vec::new(), return_type: VarType::None};
-    //result.name = match tokens[++i] {Token::TokenIdentifier(s) => s, _ => ()};
+    let mut result: NodeFunctionDefinition = NodeFunctionDefinition {
+        name: "".to_string(), 
+        arg_names: Vec::new(), 
+        arg_types: Vec::new(),
+        body: Vec::new(), 
+        return_type: VarType::None
+    };
+
     i += 1; 
     result.name = get_token_value!(&tokens[i], Token::TokenIdentifier).unwrap().to_string();
     i += 2; // this is so we skip the opening bracket - '('
+
     while tokens[i] != Token::TokenRPar{
         result.arg_names.push(get_token_value!(&tokens[i], Token::TokenIdentifier).unwrap().to_string());
         i += 2;
         result.arg_types.push(VarType::from(get_token_value!(tokens[i], Token::TokenKeyword).unwrap()));
+        i += 1;
+        variables_insert(&result.arg_names[result.arg_names.len() - 1], &result.arg_types[result.arg_types.len() - 1]);
     }
+
     i += 2; // here we skip the ')' and '=>' 
     result.return_type = VarType::from(get_token_value!(tokens[i], Token::TokenKeyword).unwrap()); 
     i += 1;
     if tokens[i] == Token::TokenColon {i += 2;}
+
     while tokens[i] != Token::TokenKeyword(Keyword::End){
         let mut buffer: Vec<Token> = Vec::new();
         while tokens[i] != Token::TokenNewLine{
             buffer.push(tokens[i].clone());
             i += 1;
         }
+
         i += 1; // so we skip the newline
         if buffer.len() != 0 {result.body.push(Box::new(generate_node(buffer)));}
     }

@@ -1,8 +1,8 @@
 mod lexer;
 mod parser;
 mod interpreter;
-mod stack;
 mod nodes;
+mod stack;
 
 fn main() {
     /*
@@ -10,7 +10,8 @@ fn main() {
     let file_name: &str = &arguments[1];
     let source_code = std::fs::read_to_string(file_name).expect("File not found!");
     */
-    let source_code = std::fs::read_to_string("../examples/1.ch").expect("File not found!");
+    let source_code = std::fs::read_to_string("1.ch").expect("File not found!");
+    println!("{}", source_code);
     let tokens = lexer::lexer(&source_code);
     /*
     for i in &tokens{
@@ -19,8 +20,10 @@ fn main() {
     println!("");
     */
     let ast = parser::parse(tokens);
+    /*
     for i in &ast{
         println!("{:#?}", i);
     }
+    */
     interpreter::interpret(ast, "1.ch".to_string());
 }
