@@ -1,16 +1,12 @@
 extern crate lazy_static;
 extern crate regex;
 
-use crate::nodes::Node;
-use crate::nodes::functions::generate_function;
-
-use crate::stack::Stack;
 use crate::lexer::Token;
 use crate::lexer::Keyword;
+use crate::nodes::Node;
 use std::collections::HashMap;
 use std::sync::Mutex;
 
-#[macro_use]
 macro_rules! get_token_value{
     ($token: expr, $token_type: path) =>{
        match $token{
@@ -74,6 +70,10 @@ impl From<Keyword> for VarType{
 }
 
 impl VarType{
+    pub fn new() -> Self{
+        VarType::None
+    }
+
     pub fn to_c(&self) -> String{
         match *self{
             VarType::I8   => return "char ".to_string(),
@@ -153,29 +153,33 @@ pub enum OperatorType{
 impl From<&Token> for OperatorType{
     fn from(token: &Token) -> OperatorType{
         match *token{
-            Token::TokenPlus     => return OperatorType::Plus,
-            Token::TokenMinus    => return OperatorType::Minus,
-            Token::TokenMul      => return OperatorType::Mul,
-            Token::TokenDiv      => return OperatorType::Div,
-            Token::TokenFloorDiv => return OperatorType::FloorDiv,
-            Token::TokenExp      => return OperatorType::Exp,
-            Token::TokenEq       => return OperatorType::Eq,
-            Token::TokenEqEq     => return OperatorType::EqEq,
-            Token::TokenNEq      => return OperatorType::NEq,
-            Token::TokenLt       => return OperatorType::Lt,
-            Token::TokenGt       => return OperatorType::Gt,
-            Token::TokenLtEq     => return OperatorType::LtEq,
-            Token::TokenGtEq     => return OperatorType::GtEq,
-            Token::TokenPlusEq   => return OperatorType::PlusEq,
-            Token::TokenMinusEq  => return OperatorType::MinusEq,
-            Token::TokenMulEq    => return OperatorType::MulEq,
-            Token::TokenDivEq    => return OperatorType::DivEq,
-            _                    => return OperatorType::None,
+            Token::Plus     => return OperatorType::Plus,
+            Token::Minus    => return OperatorType::Minus,
+            Token::Mul      => return OperatorType::Mul,
+            Token::Div      => return OperatorType::Div,
+            Token::FloorDiv => return OperatorType::FloorDiv,
+            Token::Exp      => return OperatorType::Exp,
+            Token::Eq       => return OperatorType::Eq,
+            Token::EqEq     => return OperatorType::EqEq,
+            Token::NEq      => return OperatorType::NEq,
+            Token::Lt       => return OperatorType::Lt,
+            Token::Gt       => return OperatorType::Gt,
+            Token::LtEq     => return OperatorType::LtEq,
+            Token::GtEq     => return OperatorType::GtEq,
+            Token::PlusEq   => return OperatorType::PlusEq,
+            Token::MinusEq  => return OperatorType::MinusEq,
+            Token::MulEq    => return OperatorType::MulEq,
+            Token::DivEq    => return OperatorType::DivEq,
+            _               => return OperatorType::None,
         }
     }
 }
 
 impl OperatorType{
+    pub fn new() -> Self{
+        OperatorType::None
+    }
+
     pub fn to_c(&self) -> String{
         match *self{
             OperatorType::Plus       => return "+ ".to_string(),
@@ -200,38 +204,38 @@ impl OperatorType{
     }
 }
 
-/*
-fn split_tokens(tokens: Vec<Tokens>) -> Vec<Vec<&Tokens>>{
-    let mut endings_left: i64 = -1; // this counts how many blocks we are in
-    let mut result = Vec::new();
-    let mut current: Vec<&Tokens> = Vec::new();
-    for i in tokens{
-        if i == Token::TokenKeyword(Keyword::Fn){
-            endings_left = 1;
-            continue;
+fn split_tokens(tokens: Vec<Token>) -> Vec<Vec<Token>>{
+    let mut openings: u8; // how many blocks we are in
+    let mut current: Vec<Token>;
+    let mut result: Vec<Vec<Token>> = Vec::new();
+    let mut i = 0;
+    while i < tokens.len() - 1{
+        openings = 0;
+        current = Vec::new();
+        loop{
+            match tokens[i]{
+                Token::Keyword(Keyword::If)    => openings += 1,       
+                Token::Keyword(Keyword::While) => openings += 1,
+                Token::Keyword(Keyword::For)   => openings += 1,
+                Token::Keyword(Keyword::Fn)   => openings += 1,
+                Token::Keyword(Keyword::End)   => openings -= 1,
+                _ => (),
+            }
+            current.push(tokens[i].clone());
+            i += 1;
+            if openings == 0 && tokens[i] == Token::NewLine {break;}
         }
-
-        match i{
-            Token::TokenKeyword(Keyword::If) => endings_left += 1,
-            Token::TokenKeyword(Keyword::While) => endings_left += 1,
-            Token::TokenKeyword(Keyword::For) => endings_left += 1,
-            Token::TokenKeyword(Keyword::End) => endings_left -= 1,
-        }
-
-
-        if endings_left == 0{
-            
-        }
+        result.push(current);
     }
+    return result;
 }
-*/
 
 pub fn parse(tokens: Vec<Token>) -> Vec<Node>{
+    let token_blocks = split_tokens(tokens);
     let mut result: Vec<Node> = Vec::new();
-    for i in 0..tokens.len(){
-        if tokens[i] == Token::TokenKeyword(Keyword::Fn){
-            result.push(generate_function(&tokens[i..].to_vec()));
-        }
+    for i in token_blocks{ 
+        //result.push(generate_function(&tokens[i..].to_vec()));
+        result.push(Node::from(i));
     }
     return result;
 }

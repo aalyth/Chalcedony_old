@@ -15,9 +15,6 @@ pub enum Keyword{
     F32,
     F64,
     Str,
-    And,
-    Or,
-    Not,
     If,
     Elif,
     For,
@@ -31,42 +28,44 @@ pub enum Keyword{
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Token{
-    TokenInt8(i8),
-    TokenInt16(i16),
-    TokenInt32(i32),
-    TokenInt64(i64),
-    TokenUInt8(u8),
-    TokenUInt16(u16),
-    TokenUInt32(u32),
-    TokenUInt64(u64),
-    TokenFloat32(f32),
-    TokenFloat64(f64),
+    Int8(i8),
+    Int16(i16),
+    Int32(i32),
+    Int64(i64),
+    UInt8(u8),
+    UInt16(u16),
+    UInt32(u32),
+    UInt64(u64),
+    Float32(f32),
+    Float64(f64),
     // to add TokenChar
-    TokenString(String),
-    TokenPlus,     // +
-    TokenMinus,    // -
-    TokenMul,      // *
-    TokenDiv,      // /
-    TokenFloorDiv, // //
-    TokenExp,      // **
-    TokenLPar,     // (
-    TokenRPar,     // )
-    TokenEq,       // =
-    TokenEqEq,     // ==
-    TokenNEq,      // !=
-    TokenLt,       // <
-    TokenGt,       // >
-    TokenLtEq,     // <=
-    TokenGtEq,     // >=
-    TokenPlusEq,   // +=
-    TokenMinusEq,  // -=
-    TokenMulEq,    // *=
-    TokenDivEq,    // /=
-    TokenColon,    // :
-    TokenReturn,   // =>
-    TokenNewLine,  // \n
-    TokenKeyword(Keyword),
-    TokenIdentifier(String)
+    String(String),
+    Plus,     // +
+    Minus,    // -
+    Mul,      // *
+    Div,      // /
+    FloorDiv, // //
+    Exp,      // **
+    LPar,     // (
+    RPar,     // )
+    Eq,       // =
+    EqEq,     // ==
+    NEq,      // !=
+    Lt,       // <
+    Gt,       // >
+    LtEq,     // <=
+    GtEq,     // >=
+    PlusEq,   // +=
+    MinusEq,  // -=
+    MulEq,    // *=
+    DivEq,    // /=
+    Colon,    // :
+    Return,   // ->
+    NewLine,  // \n
+    And,      // &&
+    Or,       // ||
+    Keyword(Keyword),
+    Identifier(String)
     /*
     Token_CHAR, // to add string token
     */
@@ -88,18 +87,18 @@ fn to_digit(s: &str) -> Token{
     let _result: i64 = s.parse().unwrap();
     if _result < 0{
         match _result{
-            -128           ..= 0       => return Token::TokenInt8(_result as i8),
-            -32_768        ..= -129    => return Token::TokenInt16(_result as i16),
-            -2_147_483_648 ..= -32_769 => return Token::TokenInt32(_result as i32),
-            _ => return Token::TokenInt64(_result as i64),
+            -128           ..= 0       => return Token::Int8(_result as i8),
+            -32_768        ..= -129    => return Token::Int16(_result as i16),
+            -2_147_483_648 ..= -32_769 => return Token::Int32(_result as i32),
+            _ => return Token::Int64(_result as i64),
         }
     }else{
         let _resut: u64 = _result as u64;        
         match _result{
-            0      ..= 255           => return Token::TokenUInt8(_result as u8), 
-            256    ..= 65_535        => return Token::TokenUInt16(_result as u16),
-            65_536 ..= 4_294_967_295 => return Token::TokenUInt32(_result as u32),
-            _ => return Token::TokenUInt64(_result as u64),
+            0      ..= 255           => return Token::UInt8(_result as u8), 
+            256    ..= 65_535        => return Token::UInt16(_result as u16),
+            65_536 ..= 4_294_967_295 => return Token::UInt32(_result as u32),
+            _ => return Token::UInt64(_result as u64),
         }
     }
 }
@@ -120,8 +119,8 @@ fn is_float(s: &str) -> bool{
 fn to_float(s: &str) -> Token{
     let result: f64 = s.parse().unwrap(); 
     match result{
-        x if x >= -3.40282347E+38 && x <= 3.40282347E+38 => return Token::TokenFloat32(result as f32),
-        _ => return Token::TokenFloat64(result), 
+        x if x >= -3.40282347E+38 && x <= 3.40282347E+38 => return Token::Float32(result as f32),
+        _ => return Token::Float64(result), 
     }
 }
 
@@ -131,8 +130,8 @@ pub fn lexer(src_code: &str) -> Vec<Token>{
     let keywords = std::collections::HashMap::from([
         ("auto", Keyword::Auto),
         ("none", Keyword::None),
-        ("i8", Keyword::I8),
-        ("i16", Keyword::I16),
+        ("i8",   Keyword::I8),
+        ("i16",  Keyword::I16),
         ("i32", Keyword::I32),
         ("i64", Keyword::I64),
         ("u8", Keyword::U8),
@@ -141,9 +140,7 @@ pub fn lexer(src_code: &str) -> Vec<Token>{
         ("u64", Keyword::U64),
         ("f32", Keyword::F32),
         ("f64", Keyword::F64),
-        ("and", Keyword::And),
-        ("or", Keyword::Or),
-        ("not", Keyword::Not),
+        ("str", Keyword::Str),
         ("if", Keyword::If),
         ("elif", Keyword::Elif),
         ("for", Keyword::For),
@@ -176,41 +173,43 @@ pub fn lexer(src_code: &str) -> Vec<Token>{
 
 
             if token.chars().nth(0).unwrap() == '"' && token.chars().nth(token.len() - 1).unwrap() == '"'{
-                result.push(Token::TokenString(token.to_string()));
+                result.push(Token::String(token.to_string()));
                 continue;
             }
 
             if keywords.contains_key(token){
-                result.push(Token::TokenKeyword(*keywords.get(token).unwrap())); 
+                result.push(Token::Keyword(*keywords.get(token).unwrap())); 
                 continue;
             }
 
             match token{
-                "+"  => result.push(Token::TokenPlus),
-                "-"  => result.push(Token::TokenMinus),
-                "*"  => result.push(Token::TokenMul),
-                "/"  => result.push(Token::TokenDiv),
-                "//" => result.push(Token::TokenFloorDiv),
-                "**" => result.push(Token::TokenExp),
-                "("  => result.push(Token::TokenLPar),
-                ")"  => result.push(Token::TokenRPar),
-                "="  => result.push(Token::TokenEq),
-                "==" => result.push(Token::TokenEqEq),
-                "!=" => result.push(Token::TokenNEq),
-                "<"  => result.push(Token::TokenLt),
-                ">"  => result.push(Token::TokenGt),
-                "<=" => result.push(Token::TokenLtEq),
-                ">=" => result.push(Token::TokenGtEq),
-                "+=" => result.push(Token::TokenPlusEq),
-                "-=" => result.push(Token::TokenMinusEq),
-                "*=" => result.push(Token::TokenMulEq),
-                "/=" => result.push(Token::TokenDivEq),
-                ":"  => result.push(Token::TokenColon),
-                "->" => result.push(Token::TokenReturn),
-                _    => result.push(Token::TokenIdentifier(token.to_string())),
+                "+"  => result.push(Token::Plus),
+                "-"  => result.push(Token::Minus),
+                "*"  => result.push(Token::Mul),
+                "/"  => result.push(Token::Div),
+                "//" => result.push(Token::FloorDiv),
+                "**" => result.push(Token::Exp),
+                "("  => result.push(Token::LPar),
+                ")"  => result.push(Token::RPar),
+                "="  => result.push(Token::Eq),
+                "==" => result.push(Token::EqEq),
+                "!=" => result.push(Token::NEq),
+                "<"  => result.push(Token::Lt),
+                ">"  => result.push(Token::Gt),
+                "<=" => result.push(Token::LtEq),
+                ">=" => result.push(Token::GtEq),
+                "+=" => result.push(Token::PlusEq),
+                "-=" => result.push(Token::MinusEq),
+                "*=" => result.push(Token::MulEq),
+                "/=" => result.push(Token::DivEq),
+                ":"  => result.push(Token::Colon),
+                "->" => result.push(Token::Return),
+                "&&" => result.push(Token::And),
+                "||" => result.push(Token::Or),
+                _    => result.push(Token::Identifier(token.to_string())),
             }
         }
-        result.push(Token::TokenNewLine);
+        result.push(Token::NewLine);
     }
     return result;
 }

@@ -1,4 +1,3 @@
-use crate::lexer::Token;
 use crate::parser::VarType;
 
 #[derive(Debug, Clone)]

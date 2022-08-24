@@ -11,6 +11,6 @@ pub fn interpret(nodes: Vec<Node>, file_name: String){
     }
     std::fs::write(&file_name, file_data).expect("Unable to crate file.");
 
-    std::process::Command::new("gcc").arg(&file_name).spawn().unwrap().wait();
-    std::fs::remove_file(file_name);
+    std::process::Command::new("gcc").arg(&file_name).spawn().unwrap().wait().expect("Could not compile source code with GCC: make sure GCC is installed on your machine.\n");
+    std::fs::remove_file(file_name).expect("Could not delete source file (<filename>.c).\n");
 }

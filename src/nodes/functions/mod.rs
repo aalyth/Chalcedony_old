@@ -43,18 +43,18 @@ pub struct NodeFunctionCall{
 
 pub fn get_call(token: &Token) -> Node{
     match token{
-        Token::TokenInt8(val)    => return Node::ValueInt(NodeValueInt::new(*val as i64, VarType::I8)),
-        Token::TokenInt16(val)   => return Node::ValueInt(NodeValueInt::new(*val as i64, VarType::I16)),
-        Token::TokenInt32(val)   => return Node::ValueInt(NodeValueInt::new(*val as i64, VarType::I32)),
-        Token::TokenInt64(val)   => return Node::ValueInt(NodeValueInt::new(*val as i64, VarType::I64)),
-        Token::TokenUInt8(val)   => return Node::ValueUInt(NodeValueUInt::new(*val as u64, VarType::U8)),
-        Token::TokenUInt16(val)  => return Node::ValueUInt(NodeValueUInt::new(*val as u64, VarType::U16)),
-        Token::TokenUInt32(val)  => return Node::ValueUInt(NodeValueUInt::new(*val as u64, VarType::U32)),
-        Token::TokenUInt64(val)  => return Node::ValueUInt(NodeValueUInt::new(*val as u64, VarType::U64)),
-        Token::TokenFloat32(val) => return Node::ValueFloat(NodeValueFloat::new(*val as f64, VarType::F32)),
-        Token::TokenFloat64(val) => return Node::ValueFloat(NodeValueFloat::new(*val as f64, VarType::F64)),
-        Token::TokenString(val)  => return Node::ValueString(NodeValueString::new(val.to_string(), VarType::Str)),
-        _ => return Node::VariableCall(NodeVariableCall::new(token)),
+        Token::Int8(val)    => return Node::ValueInt(NodeValueInt::new(*val as i64, VarType::I8)),
+        Token::Int16(val)   => return Node::ValueInt(NodeValueInt::new(*val as i64, VarType::I16)),
+        Token::Int32(val)   => return Node::ValueInt(NodeValueInt::new(*val as i64, VarType::I32)),
+        Token::Int64(val)   => return Node::ValueInt(NodeValueInt::new(*val as i64, VarType::I64)),
+        Token::UInt8(val)   => return Node::ValueUInt(NodeValueUInt::new(*val as u64, VarType::U8)),
+        Token::UInt16(val)  => return Node::ValueUInt(NodeValueUInt::new(*val as u64, VarType::U16)),
+        Token::UInt32(val)  => return Node::ValueUInt(NodeValueUInt::new(*val as u64, VarType::U32)),
+        Token::UInt64(val)  => return Node::ValueUInt(NodeValueUInt::new(*val as u64, VarType::U64)),
+        Token::Float32(val) => return Node::ValueFloat(NodeValueFloat::new(*val as f64, VarType::F32)),
+        Token::Float64(val) => return Node::ValueFloat(NodeValueFloat::new(*val as f64, VarType::F64)),
+        Token::String(val)  => return Node::ValueString(NodeValueString::new(val.to_string(), VarType::Str)),
+        _ => return Node::VariableCall(NodeVariableCall::from(token)),
     }
 }
 
@@ -65,7 +65,7 @@ pub fn format_printf(string: String) -> Vec<Box<Node>>{
 
     for matches in formatting.captures_iter(&string){
         let var_name: String = (&matches[0][2..matches[0].len()-1]).to_string();
-        vec_result.push(Box::new(Node::VariableCall(NodeVariableCall::new(&Token::TokenIdentifier(var_name.to_owned())))));
+        vec_result.push(Box::new(Node::VariableCall(NodeVariableCall::from(&Token::Identifier(var_name.to_owned())))));
         result = str::replace(&result, &matches[0][1..], &VarType::to_c_printf(&variables_get(&var_name)));
     }
 
@@ -75,7 +75,7 @@ pub fn format_printf(string: String) -> Vec<Box<Node>>{
 
 impl NodeFunctionCall{
     pub fn new(tokens: &Vec<Token>) -> Self{
-        let mut result: NodeFunctionCall = NodeFunctionCall {name: get_token_value!(&tokens[0], Token::TokenIdentifier).unwrap().to_string(), args: Vec::new()};
+        let mut result: NodeFunctionCall = NodeFunctionCall {name: get_token_value!(&tokens[0], Token::Identifier).unwrap().to_string(), args: Vec::new()};
         for i in 2..(tokens.len() - 1){
             result.args.push(Box::new(get_call(&tokens[i])));
         }
@@ -119,31 +119,31 @@ pub fn generate_function(tokens: &Vec<Token>) -> Node{
     };
 
     i += 1; 
-    result.name = get_token_value!(&tokens[i], Token::TokenIdentifier).unwrap().to_string();
+    result.name = get_token_value!(&tokens[i], Token::Identifier).unwrap().to_string();
     i += 2; // this is so we skip the opening bracket - '('
 
-    while tokens[i] != Token::TokenRPar{
-        result.arg_names.push(get_token_value!(&tokens[i], Token::TokenIdentifier).unwrap().to_string());
+    while tokens[i] != Token::RPar{
+        result.arg_names.push(get_token_value!(&tokens[i], Token::Identifier).unwrap().to_string());
         i += 2;
-        result.arg_types.push(VarType::from(get_token_value!(tokens[i], Token::TokenKeyword).unwrap()));
+        result.arg_types.push(VarType::from(get_token_value!(tokens[i], Token::Keyword).unwrap()));
         i += 1;
         variables_insert(&result.arg_names[result.arg_names.len() - 1], &result.arg_types[result.arg_types.len() - 1]);
     }
 
     i += 2; // here we skip the ')' and '=>' 
-    result.return_type = VarType::from(get_token_value!(tokens[i], Token::TokenKeyword).unwrap()); 
+    result.return_type = VarType::from(get_token_value!(tokens[i], Token::Keyword).unwrap()); 
     i += 1;
-    if tokens[i] == Token::TokenColon {i += 2;}
+    if tokens[i] == Token::Colon {i += 2;}
 
-    while tokens[i] != Token::TokenKeyword(Keyword::End){
+    while tokens[i] != Token::Keyword(Keyword::End){
         let mut buffer: Vec<Token> = Vec::new();
-        while tokens[i] != Token::TokenNewLine{
+        while tokens[i] != Token::NewLine{
             buffer.push(tokens[i].clone());
             i += 1;
         }
 
         i += 1; // so we skip the newline
-        if buffer.len() != 0 {result.body.push(Box::new(generate_node(buffer)));}
+        if buffer.len() != 0 {result.body.push(Box::new(Node::from(buffer)));}
     }
     return Node::FunctionDefinition(result);
 }

@@ -40,23 +40,8 @@ pub enum Node{
 }
 
 impl Node{
-    // convert this function to 'From<&Token> for Node'
-    fn new(token: &Token) -> Self{
-        match token{
-            Token::TokenInt8(val)    => return Node::ValueInt(NodeValueInt::new(*val as i64, VarType::I8)),
-            Token::TokenInt16(val)   => return Node::ValueInt(NodeValueInt::new(*val as i64, VarType::I16)),
-            Token::TokenInt32(val)   => return Node::ValueInt(NodeValueInt::new(*val as i64, VarType::I32)),
-            Token::TokenInt64(val)   => return Node::ValueInt(NodeValueInt::new(*val as i64, VarType::I64)),
-            Token::TokenUInt8(val)   => return Node::ValueUInt(NodeValueUInt::new(*val as u64, VarType::U8)),
-            Token::TokenUInt16(val)  => return Node::ValueUInt(NodeValueUInt::new(*val as u64, VarType::U16)),
-            Token::TokenUInt32(val)  => return Node::ValueUInt(NodeValueUInt::new(*val as u64, VarType::U32)),
-            Token::TokenUInt64(val)  => return Node::ValueUInt(NodeValueUInt::new(*val as u64, VarType::U64)),
-            Token::TokenFloat32(val) => return Node::ValueFloat(NodeValueFloat::new(*val as f64, VarType::F32)),
-            Token::TokenFloat64(val) => return Node::ValueFloat(NodeValueFloat::new(*val as f64, VarType::F64)),
-            Token::TokenString(val)  => return Node::ValueString(NodeValueString::new(val.to_string(), VarType::Str)),
-            Token::TokenIdentifier(_val) => return Node::VariableCall(NodeVariableCall::new(token)),
-            _ => todo!(),
-        }
+    fn new() -> Self{
+        Node::None
     }
 
     pub fn to_c(&self) -> String{
@@ -76,18 +61,62 @@ impl Node{
     }
 }
 
-fn generate_node(tokens: Vec<Token>) -> Node{
-    if tokens.len() == 1 {return Node::new(&tokens[0]);}
-    match &tokens[0]{
-        Token::TokenIdentifier(_val) => return match tokens[1]{
-            Token::TokenLPar => Node::FunctionCall(NodeFunctionCall::new(&tokens)),
-            _ => Node::BinaryExpression(generate_binary_expression_tree(&tokens)),
-        },
-        Token::TokenKeyword(_val) => return match &tokens[1]{
-            Token::TokenIdentifier(__val) => return generate_variable(&tokens),
+impl From<&Token> for Node{
+    fn from(token: &Token) -> Node{
+        match token{
+            Token::Int8(val)    => return Node::ValueInt(NodeValueInt::new(*val as i64, VarType::I8)),
+            Token::Int16(val)   => return Node::ValueInt(NodeValueInt::new(*val as i64, VarType::I16)),
+            Token::Int32(val)   => return Node::ValueInt(NodeValueInt::new(*val as i64, VarType::I32)),
+            Token::Int64(val)   => return Node::ValueInt(NodeValueInt::new(*val as i64, VarType::I64)),
+            Token::UInt8(val)   => return Node::ValueUInt(NodeValueUInt::new(*val as u64, VarType::U8)),
+            Token::UInt16(val)  => return Node::ValueUInt(NodeValueUInt::new(*val as u64, VarType::U16)),
+            Token::UInt32(val)  => return Node::ValueUInt(NodeValueUInt::new(*val as u64, VarType::U32)),
+            Token::UInt64(val)  => return Node::ValueUInt(NodeValueUInt::new(*val as u64, VarType::U64)),
+            Token::Float32(val) => return Node::ValueFloat(NodeValueFloat::new(*val as f64, VarType::F32)),
+            Token::Float64(val) => return Node::ValueFloat(NodeValueFloat::new(*val as f64, VarType::F64)),
+            Token::String(val)  => return Node::ValueString(NodeValueString::new(val.to_string(), VarType::Str)),
+            Token::Identifier(_val) => return Node::VariableCall(NodeVariableCall::from(token)),
             _ => todo!(),
-        },
-        _ => todo!(),
-        //Token::TokenKeyword(Keyword::If) => return 
+        }
     }
 }
+
+impl From<Vec<Token>> for Node{
+    fn from(tokens: Vec<Token>) -> Node{
+        if tokens.len() == 1 {return Node::from(&tokens[0]);}
+        /*
+        match &tokens[0]{
+            Token::Identifier(_val) => return match tokens[1]{
+                Token::LPar => Node::FunctionCall(NodeFunctionCall::new(&tokens)),
+                _ => Node::BinaryExpression(generate_binary_expression_tree(&tokens)),
+            },
+            Token::Keyword(_val) => return match &tokens[1]{
+                Token::Identifier(__val) => return generate_variable(&tokens),
+                _ => todo!(),
+            },
+            _ => todo!(),
+            //Token::TokenKeyword(Keyword::If) => return 
+        }
+        */
+        match &tokens[0]{
+            Token::Keyword(Keyword::I8)  => return generate_variable(&tokens),
+            Token::Keyword(Keyword::I16) => return generate_variable(&tokens),
+            Token::Keyword(Keyword::I32) => return generate_variable(&tokens),
+            Token::Keyword(Keyword::I64) => return generate_variable(&tokens),
+            Token::Keyword(Keyword::U8)  => return generate_variable(&tokens),
+            Token::Keyword(Keyword::U16) => return generate_variable(&tokens),
+            Token::Keyword(Keyword::U32) => return generate_variable(&tokens),
+            Token::Keyword(Keyword::U64) => return generate_variable(&tokens),
+            Token::Keyword(Keyword::F32) => return generate_variable(&tokens),
+            Token::Keyword(Keyword::F64) => return generate_variable(&tokens),
+            Token::Keyword(Keyword::Str) => return generate_variable(&tokens),
+            Token::Keyword(Keyword::Fn)  => return generate_function(&tokens), 
+            Token::Identifier(_val) => return match tokens[1]{
+                Token::LPar => return Node::FunctionCall(NodeFunctionCall::new(&tokens)),
+                _           => return Node::BinaryExpression(generate_binary_expression_tree(&tokens)),
+            },
+            _ => todo!()
+        }
+    }
+}
+

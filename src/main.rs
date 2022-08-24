@@ -11,7 +11,7 @@ fn main() {
     let source_code = std::fs::read_to_string(file_name).expect("File not found!");
     */
     let source_code = std::fs::read_to_string("1.ch").expect("File not found!");
-    println!("{}", source_code);
+    //println!("{}", source_code);
     let tokens = lexer::lexer(&source_code);
     /*
     for i in &tokens{

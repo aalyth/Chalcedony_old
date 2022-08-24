@@ -13,7 +13,7 @@ pub struct NodeBinaryExpression{
 
 impl NodeBinaryExpression{
     pub fn new() -> Self{
-        NodeBinaryExpression {operands: [Box::new(Node::None), Box::new(Node::None)], operator: OperatorType::None}
+        NodeBinaryExpression {operands: [Box::new(Node::new()), Box::new(Node::new())], operator: OperatorType::None}
     }
 
     pub fn to_c(&self) -> String{
@@ -27,67 +27,66 @@ impl NodeBinaryExpression{
     }
 }
 
-impl Token{
-    fn precedence(&self) -> u8{
-        match *self{
-            Token::TokenPlus     => 1,
-            Token::TokenPlusEq   => 1,
-            Token::TokenMinus    => 1,
-            Token::TokenMinusEq  => 1,
-            Token::TokenMul      => 2,
-            Token::TokenMulEq    => 2,
-            Token::TokenDiv      => 2,
-            Token::TokenDivEq    => 2,
-            Token::TokenExp      => 3,
-            Token::TokenFloorDiv => 3,
-            Token::TokenRPar     => 0,
-            _ => 0
-        }
+impl From<&Vec<Token>> for NodeBinaryExpression{
+    fn from(tokens: &Vec<Token>) -> Self{
+        NodeBinaryExpression {operands: [Box::new(Node::from(&tokens[0])), Box::new(Node::from(&tokens[2]))], operator: OperatorType::from(&tokens[1])}
     }
 }
 
-impl From<&Vec<Token>> for NodeBinaryExpression{
-    fn from(tokens: &Vec<Token>) -> Self{
-        NodeBinaryExpression {operands: [Box::new(Node::new(&tokens[0])), Box::new(Node::new(&tokens[2]))], operator: OperatorType::from(&tokens[1])}
+impl Token{
+    fn precedence(&self) -> u8{
+        match *self{
+            Token::Plus     => 1,
+            Token::PlusEq   => 1,
+            Token::Minus    => 1,
+            Token::MinusEq  => 1,
+            Token::Mul      => 2,
+            Token::MulEq    => 2,
+            Token::Div      => 2,
+            Token::DivEq    => 2,
+            Token::Exp      => 3,
+            Token::FloorDiv => 3,
+            Token::RPar     => 0,
+            _ => 0
+        }
     }
 }
 
 fn is_arithmetic(token: &Token) -> bool{
     // returns true if this is a keyword or a non-string value
     match token{
-        Token::TokenIdentifier(_val) => return true,
-        Token::TokenInt8(_val)    => return true,
-        Token::TokenInt16(_val)   => return true,
-        Token::TokenInt32(_val)   => return true,
-        Token::TokenInt64(_val)   => return true,
-        Token::TokenUInt8(_val)   => return true,
-        Token::TokenUInt16(_val)  => return true,
-        Token::TokenUInt32(_val)  => return true,
-        Token::TokenUInt64(_val)  => return true,
-        Token::TokenFloat32(_val) => return true,
-        Token::TokenFloat64(_val) => return true,
-        // Token::TokenString(_val)  => return true,
+        Token::Identifier(_val) => return true,
+        Token::Int8(_val)    => return true,
+        Token::Int16(_val)   => return true,
+        Token::Int32(_val)   => return true,
+        Token::Int64(_val)   => return true,
+        Token::UInt8(_val)   => return true,
+        Token::UInt16(_val)  => return true,
+        Token::UInt32(_val)  => return true,
+        Token::UInt64(_val)  => return true,
+        Token::Float32(_val) => return true,
+        Token::Float64(_val) => return true,
+        // Token::String(_val)  => return true,
         _ => return false,
     }
 }
 
-// todo()! => to make auto keyword solve the whole binary expression tree to find out variable type
 // an adaptation of the Shunting-yard algorithm for infix notation
 pub fn generate_binary_expression_tree(tokens: &Vec<Token>) -> NodeBinaryExpression{
     let mut st_c: Stack<Token> = Stack::<Token>::new(); // character (Token) stack 
     let mut st_n: Stack<Node> = Stack::<Node>::new(); // node stack
     for i in tokens{
-        if *i == Token::TokenLPar {
+        if *i == Token::LPar {
             st_c.insert(i.clone());
 
         }else if is_arithmetic(i){
-            st_n.insert(Node::new(i));
+            st_n.insert(Node::from(i));
 
         }else if i.precedence() > 0{
             while !st_c.empty() &&
-                  *st_c.top() != Token::TokenLPar &&
-                  ((*i != Token::TokenExp && st_c.top().precedence() >= i.precedence()) ||
-                  (*i == Token::TokenExp && st_c.top().precedence() > i.precedence())){
+                  *st_c.top() != Token::LPar &&
+                  ((*i != Token::Exp && st_c.top().precedence() >= i.precedence()) ||
+                  (*i == Token::Exp && st_c.top().precedence() > i.precedence())){
                 
                 let operator: OperatorType = OperatorType::from(&st_c.pop());
                 let operand2: Node = st_n.pop();
@@ -101,8 +100,8 @@ pub fn generate_binary_expression_tree(tokens: &Vec<Token>) -> NodeBinaryExpress
             }
             st_c.insert(i.clone());
 
-        }else if *i == Token::TokenRPar{
-            while !st_c.empty() && *st_c.top() != Token::TokenLPar {
+        }else if *i == Token::RPar{
+            while !st_c.empty() && *st_c.top() != Token::LPar {
                 let operator: OperatorType = OperatorType::from(&st_c.pop());
                 let operand2: Node = st_n.pop();
                 let operand1: Node = st_n.pop();
@@ -118,7 +117,7 @@ pub fn generate_binary_expression_tree(tokens: &Vec<Token>) -> NodeBinaryExpress
         }
     }
 
-    while !st_c.empty() && *st_c.top() != Token::TokenLPar {
+    while !st_c.empty() && *st_c.top() != Token::LPar {
         let operator: OperatorType = OperatorType::from(&st_c.pop());
         let operand2: Node = st_n.pop();
         let operand1: Node = st_n.pop();
@@ -157,6 +156,7 @@ fn greater_var_type(type1: &VarType, type2: &VarType) -> VarType{
     return type2.clone();
 }
 
+// this is for evaluating the type when using the 'auto' keyword
 pub fn evaluate_var_type(root: &Node) -> VarType{
     if let Node::BinaryExpression(val) = root{
         let left = evaluate_var_type(&val.operands[0]);
