@@ -133,8 +133,13 @@ pub fn generate_function(tokens: &Vec<Token>) -> Node{
     i += 2; // here we skip the ')' and '=>' 
     result.return_type = VarType::from(get_token_value!(tokens[i], Token::Keyword).unwrap()); 
     i += 1;
-    if tokens[i] == Token::Colon {i += 2;}
+    if tokens[i] == Token::Colon {i += 1;}
 
+    let split_body_tokens = split_tokens(tokens[i .. tokens.len() - 1].to_vec());
+    for i in split_body_tokens{
+            result.body.push(Box::new(Node::from(i)));
+    }
+    /*
     while tokens[i] != Token::Keyword(Keyword::End){
         let mut buffer: Vec<Token> = Vec::new();
         while tokens[i] != Token::NewLine{
@@ -145,6 +150,7 @@ pub fn generate_function(tokens: &Vec<Token>) -> Node{
         i += 1; // so we skip the newline
         if buffer.len() != 0 {result.body.push(Box::new(Node::from(buffer)));}
     }
+    */
     return Node::FunctionDefinition(result);
 }
 

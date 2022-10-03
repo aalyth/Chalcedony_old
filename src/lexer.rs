@@ -17,6 +17,7 @@ pub enum Keyword{
     Str,
     If,
     Elif,
+    Else,
     For,
     To,
     While,
@@ -44,13 +45,14 @@ pub enum Token{
     Minus,    // -
     Mul,      // *
     Div,      // /
+    Mod,      // %
     FloorDiv, // //
     Exp,      // **
     LPar,     // (
     RPar,     // )
     Eq,       // =
     EqEq,     // ==
-    NEq,      // !=
+    NotEq,    // !=
     Lt,       // <
     Gt,       // >
     LtEq,     // <=
@@ -59,11 +61,15 @@ pub enum Token{
     MinusEq,  // -=
     MulEq,    // *=
     DivEq,    // /=
+    ModEq,    // %=
     Colon,    // :
     Return,   // ->
     NewLine,  // \n
     And,      // &&
     Or,       // ||
+    Not,      // !        |
+    // Reference // &     | unary operators
+    // Dereference // *   |
     Keyword(Keyword),
     Identifier(String)
     /*
@@ -143,6 +149,7 @@ pub fn lexer(src_code: &str) -> Vec<Token>{
         ("str", Keyword::Str),
         ("if", Keyword::If),
         ("elif", Keyword::Elif),
+        ("else", Keyword::Else),
         ("for", Keyword::For),
         ("to", Keyword::To),
         ("while", Keyword::While),
@@ -151,7 +158,7 @@ pub fn lexer(src_code: &str) -> Vec<Token>{
         ("return", Keyword::Return),
     ]);
 
-    let re = regex::Regex::new(r#"(#.*)|(\n)|(".+")|(\*\*)|(//)|(->)|([=!<>\+\-\*/]=)|(\d+(\.\d*)*)|([a-zA-Z0-9\-_]+)|[\(\):=\+\-\*/<>\#]"#).unwrap();
+    let re = regex::Regex::new(r#"(#.*)|(\n)|(".+")|(\*\*)|(//)|(->)|(&&)|(\|\|)|([!&\*])|([=!<>\+\-\*/%]=)|(\d+(\.\d*)*)|([a-zA-Z0-9\-_]+)|[\(\):=\+\-\*/<>\#%]"#).unwrap();
 
     for line in lines{
         for matches in re.captures_iter(line){
@@ -187,13 +194,14 @@ pub fn lexer(src_code: &str) -> Vec<Token>{
                 "-"  => result.push(Token::Minus),
                 "*"  => result.push(Token::Mul),
                 "/"  => result.push(Token::Div),
+                "%"  => result.push(Token::Mod),
                 "//" => result.push(Token::FloorDiv),
                 "**" => result.push(Token::Exp),
                 "("  => result.push(Token::LPar),
                 ")"  => result.push(Token::RPar),
                 "="  => result.push(Token::Eq),
                 "==" => result.push(Token::EqEq),
-                "!=" => result.push(Token::NEq),
+                "!=" => result.push(Token::NotEq),
                 "<"  => result.push(Token::Lt),
                 ">"  => result.push(Token::Gt),
                 "<=" => result.push(Token::LtEq),
@@ -202,10 +210,12 @@ pub fn lexer(src_code: &str) -> Vec<Token>{
                 "-=" => result.push(Token::MinusEq),
                 "*=" => result.push(Token::MulEq),
                 "/=" => result.push(Token::DivEq),
+                "%=" => result.push(Token::ModEq),
                 ":"  => result.push(Token::Colon),
                 "->" => result.push(Token::Return),
                 "&&" => result.push(Token::And),
                 "||" => result.push(Token::Or),
+                "!"  => result.push(Token::Not),
                 _    => result.push(Token::Identifier(token.to_string())),
             }
         }

@@ -1,12 +1,14 @@
 pub mod values;
 pub mod variables;
 pub mod binary_expression;
+pub mod unary_expression;
 pub mod control_flow;
 pub mod functions;
 
 use values::*;
 use variables::*;
 use binary_expression::*;
+use unary_expression::*;
 use control_flow::*;
 use functions::*;
 
@@ -21,9 +23,12 @@ pub enum Node{
     ValueString(NodeValueString),
     VariableCall(NodeVariableCall),
     VariableInitialization(NodeVariableInitialization), 
-    VariableDeclaration(NodeVariableDeclaration), // the definition of a variable is a binary expression
+    VariableDeclaration(NodeVariableDeclaration), 
     BinaryExpression(NodeBinaryExpression),
-    IfStatement(NodeIfStatement), // need to add else handling
+    UnaryExpression(NodeUnaryExpression),
+    IfStatement(NodeIfStatement), 
+    ElifStatement(NodeElifStatement), 
+    ElseStatement(NodeElseStatement), 
     WhileLoop(NodeWhileLoop), 
     FunctionDefinition(NodeFunctionDefinition),
     FunctionCall(NodeFunctionCall),
@@ -54,8 +59,13 @@ impl Node{
             Node::VariableInitialization(val) => return val.to_c(),
             Node::VariableDeclaration(val)    => return val.to_c(),
             Node::BinaryExpression(val)       => return val.to_c(),
+            Node::UnaryExpression(val)        => return val.to_c(),
             Node::FunctionDefinition(val)     => return val.to_c(),
             Node::FunctionCall(val)           => return val.to_c(),
+            Node::IfStatement(val)            => return val.to_c(),
+            Node::ElifStatement(val)          => return val.to_c(),
+            Node::ElseStatement(val)          => return val.to_c(),
+            Node::WhileLoop(val)              => return val.to_c(),
             _ => todo!(),
         }
     }
@@ -81,6 +91,22 @@ impl From<&Token> for Node{
     }
 }
 
+// returns the index of the closing right parenthesis of the given statement
+fn get_closing_rpar(tokens: &Vec<Token>) -> usize{
+    let mut i = 0;
+    let mut openings = 0;
+    loop{
+        match tokens[i] {
+            Token::LPar => openings += 1,
+            Token::RPar => openings -= 1,
+            _ => (),
+        }
+        if openings == 0 && tokens[i] == Token::RPar {break;}
+        i += 1;
+    }
+    return i;
+}
+
 impl From<Vec<Token>> for Node{
     fn from(tokens: Vec<Token>) -> Node{
         if tokens.len() == 1 {return Node::from(&tokens[0]);}
@@ -99,22 +125,27 @@ impl From<Vec<Token>> for Node{
         }
         */
         match &tokens[0]{
-            Token::Keyword(Keyword::I8)  => return generate_variable(&tokens),
-            Token::Keyword(Keyword::I16) => return generate_variable(&tokens),
-            Token::Keyword(Keyword::I32) => return generate_variable(&tokens),
-            Token::Keyword(Keyword::I64) => return generate_variable(&tokens),
-            Token::Keyword(Keyword::U8)  => return generate_variable(&tokens),
-            Token::Keyword(Keyword::U16) => return generate_variable(&tokens),
-            Token::Keyword(Keyword::U32) => return generate_variable(&tokens),
-            Token::Keyword(Keyword::U64) => return generate_variable(&tokens),
-            Token::Keyword(Keyword::F32) => return generate_variable(&tokens),
-            Token::Keyword(Keyword::F64) => return generate_variable(&tokens),
-            Token::Keyword(Keyword::Str) => return generate_variable(&tokens),
-            Token::Keyword(Keyword::Fn)  => return generate_function(&tokens), 
+            Token::Keyword(Keyword::Auto)  => return generate_variable(&tokens),
+            Token::Keyword(Keyword::I8)    => return generate_variable(&tokens),
+            Token::Keyword(Keyword::I16)   => return generate_variable(&tokens),
+            Token::Keyword(Keyword::I32)   => return generate_variable(&tokens),
+            Token::Keyword(Keyword::I64)   => return generate_variable(&tokens),
+            Token::Keyword(Keyword::U8)    => return generate_variable(&tokens),
+            Token::Keyword(Keyword::U16)   => return generate_variable(&tokens),
+            Token::Keyword(Keyword::U32)   => return generate_variable(&tokens),
+            Token::Keyword(Keyword::U64)   => return generate_variable(&tokens),
+            Token::Keyword(Keyword::F32)   => return generate_variable(&tokens),
+            Token::Keyword(Keyword::F64)   => return generate_variable(&tokens),
+            Token::Keyword(Keyword::Str)   => return generate_variable(&tokens),
+            Token::Keyword(Keyword::Fn)    => return generate_function(&tokens), 
+            Token::Not                     => return Node::UnaryExpression(NodeUnaryExpression::from(&tokens)),
+            Token::Keyword(Keyword::If)    => return Node::IfStatement(NodeIfStatement::from(&tokens)),
+            Token::Keyword(Keyword::While) => return Node::WhileLoop(NodeWhileLoop::from(&tokens)),
             Token::Identifier(_val) => return match tokens[1]{
                 Token::LPar => return Node::FunctionCall(NodeFunctionCall::new(&tokens)),
                 _           => return Node::BinaryExpression(generate_binary_expression_tree(&tokens)),
             },
+            Token::LPar => return Node::from(tokens[1 .. get_closing_rpar(&tokens)].to_vec()),
             _ => todo!()
         }
     }
