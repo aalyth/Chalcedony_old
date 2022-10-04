@@ -129,24 +129,29 @@ impl VarType{
  
 #[derive(Debug, Clone)]
 pub enum OperatorType{
-    Plus,
-    Minus,
-    Mul,
-    Div,
-    FloorDiv,
-    Exp,
-    Eq,
-    EqEq,
-    NEq,
-    Lt,
-    Gt,
-    LtEq,
-    GtEq,
-    PlusEq,
-    MinusEq,
-    MulEq,
-    DivEq,
-    // todo!() - ExpEq (**=), FloorDivEq ( //=)
+    Plus,     // +
+    Minus,    // -
+    Mul,      // *
+    Div,      // /
+    Mod,      // %
+    FloorDiv, // //
+    Exp,      // **
+    Eq,       // =
+    EqEq,     // ==
+    NotEq,    // !=
+    Lt,       // <
+    Gt,       // >
+    LtEq,     // <=
+    GtEq,     // >=
+    PlusEq,   // +=
+    MinusEq,  // -=
+    MulEq,    // *=
+    DivEq,    // /=
+    ModEq,    // %=
+    And,      // &&
+    Or,       // |
+    Not,      // !
+    // todo!() - ExpEq (**=), FloorDivEq ( //=), BinaryAnd (&), BinaryOr (|)
     None,
 }
 
@@ -157,11 +162,12 @@ impl From<&Token> for OperatorType{
             Token::Minus    => return OperatorType::Minus,
             Token::Mul      => return OperatorType::Mul,
             Token::Div      => return OperatorType::Div,
+            Token::Mod      => return OperatorType::Mod,
             Token::FloorDiv => return OperatorType::FloorDiv,
             Token::Exp      => return OperatorType::Exp,
             Token::Eq       => return OperatorType::Eq,
             Token::EqEq     => return OperatorType::EqEq,
-            Token::NEq      => return OperatorType::NEq,
+            Token::NotEq    => return OperatorType::NotEq,
             Token::Lt       => return OperatorType::Lt,
             Token::Gt       => return OperatorType::Gt,
             Token::LtEq     => return OperatorType::LtEq,
@@ -170,6 +176,10 @@ impl From<&Token> for OperatorType{
             Token::MinusEq  => return OperatorType::MinusEq,
             Token::MulEq    => return OperatorType::MulEq,
             Token::DivEq    => return OperatorType::DivEq,
+            Token::ModEq    => return OperatorType::ModEq,
+            Token::And      => return OperatorType::And,
+            Token::Or       => return OperatorType::Or,
+            Token::Not      => return OperatorType::Not,
             _               => return OperatorType::None,
         }
     }
@@ -186,11 +196,12 @@ impl OperatorType{
             OperatorType::Minus      => return "- ".to_string(),
             OperatorType::Mul        => return "* ".to_string(),
             OperatorType::Div        => return "/ ".to_string(),
+            OperatorType::Mod        => return "% ".to_string(),
             //OperatorType::FloorDiv => return "+ ".to_string(),
             //OperatorType::Exp      => return "+ ".to_string(),
             OperatorType::Eq         => return "= ".to_string(),
             OperatorType::EqEq       => return "== ".to_string(),
-            OperatorType::NEq        => return "!= ".to_string(),
+            OperatorType::NotEq      => return "!= ".to_string(),
             OperatorType::Lt         => return "< ".to_string(),
             OperatorType::Gt         => return "> ".to_string(),
             OperatorType::LtEq       => return "<= ".to_string(),
@@ -199,6 +210,10 @@ impl OperatorType{
             OperatorType::MinusEq    => return "-= ".to_string(),
             OperatorType::MulEq      => return "*= ".to_string(),
             OperatorType::DivEq      => return "/= ".to_string(),
+            OperatorType::ModEq      => return "%= ".to_string(),
+            OperatorType::And        => return "&& ".to_string(),
+            OperatorType::Or         => return "|| ".to_string(),
+            OperatorType::Not        => return "! ".to_string(),
             _ => return "".to_string(),
         }
     }
@@ -217,15 +232,15 @@ pub fn split_tokens(tokens: Vec<Token>) -> Vec<Vec<Token>>{
                 Token::Keyword(Keyword::If)    => openings += 1,       
                 Token::Keyword(Keyword::While) => openings += 1,
                 Token::Keyword(Keyword::For)   => openings += 1,
-                Token::Keyword(Keyword::Fn)   => openings += 1,
+                Token::Keyword(Keyword::Fn)    => openings += 1,
                 Token::Keyword(Keyword::End)   => openings -= 1,
                 _ => (),
             }
-            current.push(tokens[i].clone());
             i += 1;
             if openings == 0 && tokens[i] == Token::NewLine {break;}
+            current.push(tokens[i].clone());
         }
-        result.push(current);
+        if current != Vec::new() {result.push(current);}
     }
     return result;
 }
@@ -235,6 +250,7 @@ pub fn parse(tokens: Vec<Token>) -> Vec<Node>{
     let mut result: Vec<Node> = Vec::new();
     for i in token_blocks{ 
         //result.push(generate_function(&tokens[i..].to_vec()));
+        if i == Vec::new() {continue;}
         result.push(Node::from(i));
     }
     return result;

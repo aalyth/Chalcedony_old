@@ -13,7 +13,10 @@ pub struct NodeBinaryExpression{
 
 impl NodeBinaryExpression{
     pub fn new() -> Self{
-        NodeBinaryExpression {operands: [Box::new(Node::new()), Box::new(Node::new())], operator: OperatorType::None}
+        NodeBinaryExpression {
+            operands: [Box::new(Node::new()), Box::new(Node::new())], 
+            operator: OperatorType::new(),
+        }
     }
 
     pub fn to_c(&self) -> String{
@@ -29,23 +32,37 @@ impl NodeBinaryExpression{
 
 impl From<&Vec<Token>> for NodeBinaryExpression{
     fn from(tokens: &Vec<Token>) -> Self{
-        NodeBinaryExpression {operands: [Box::new(Node::from(&tokens[0])), Box::new(Node::from(&tokens[2]))], operator: OperatorType::from(&tokens[1])}
+        NodeBinaryExpression {
+            operands: [Box::new(Node::from(&tokens[0])), Box::new(Node::from(&tokens[2]))], 
+            operator: OperatorType::from(&tokens[1])
+        }
     }
 }
 
 impl Token{
     fn precedence(&self) -> u8{
         match *self{
-            Token::Plus     => 1,
-            Token::PlusEq   => 1,
-            Token::Minus    => 1,
-            Token::MinusEq  => 1,
-            Token::Mul      => 2,
-            Token::MulEq    => 2,
-            Token::Div      => 2,
-            Token::DivEq    => 2,
-            Token::Exp      => 3,
-            Token::FloorDiv => 3,
+            Token::Eq       => 1,
+            Token::Or       => 1,
+            Token::And      => 2,
+            Token::EqEq     => 3,
+            Token::NotEq    => 3,
+            Token::Lt       => 3,
+            Token::LtEq     => 3,
+            Token::Gt       => 3,
+            Token::GtEq     => 3,
+            Token::Plus     => 4,
+            Token::PlusEq   => 4,
+            Token::Minus    => 4,
+            Token::MinusEq  => 4,
+            Token::Mul      => 5,
+            Token::MulEq    => 5,
+            Token::Div      => 5,
+            Token::DivEq    => 5,
+            Token::Mod      => 5,
+            Token::ModEq    => 5,
+            Token::Exp      => 6,
+            Token::FloorDiv => 6,
             Token::RPar     => 0,
             _ => 0
         }
