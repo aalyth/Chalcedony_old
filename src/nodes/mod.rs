@@ -83,21 +83,8 @@ impl From<&Token> for Node{
 
 impl From<Vec<Token>> for Node{
     fn from(tokens: Vec<Token>) -> Node{
+        println!("from tokens = {:#?}\n", tokens);
         if tokens.len() == 1 {return Node::from(&tokens[0]);}
-        /*
-        match &tokens[0]{
-            Token::Identifier(_val) => return match tokens[1]{
-                Token::LPar => Node::FunctionCall(NodeFunctionCall::new(&tokens)),
-                _ => Node::BinaryExpression(generate_binary_expression_tree(&tokens)),
-            },
-            Token::Keyword(_val) => return match &tokens[1]{
-                Token::Identifier(__val) => return generate_variable(&tokens),
-                _ => todo!(),
-            },
-            _ => todo!(),
-            //Token::TokenKeyword(Keyword::If) => return 
-        }
-        */
         match &tokens[0]{
             Token::Keyword(Keyword::I8)  => return generate_variable(&tokens),
             Token::Keyword(Keyword::I16) => return generate_variable(&tokens),

@@ -204,7 +204,7 @@ impl OperatorType{
     }
 }
 
-fn split_tokens(tokens: Vec<Token>) -> Vec<Vec<Token>>{
+pub fn split_tokens(tokens: Vec<Token>) -> Vec<Vec<Token>>{
     let mut openings: u8; // how many blocks we are in
     let mut current: Vec<Token>;
     let mut result: Vec<Vec<Token>> = Vec::new();

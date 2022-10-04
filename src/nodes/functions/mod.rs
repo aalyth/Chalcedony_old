@@ -109,6 +109,7 @@ impl NodeFunctionCall{
 }
 
 pub fn generate_function(tokens: &Vec<Token>) -> Node{
+    println!("function tokens = {:#?}\n", tokens);
     let mut i = 0;
     let mut result: NodeFunctionDefinition = NodeFunctionDefinition {
         name: "".to_string(), 
@@ -142,8 +143,8 @@ pub fn generate_function(tokens: &Vec<Token>) -> Node{
             i += 1;
         }
 
-        i += 1; // so we skip the newline
-        if buffer.len() != 0 {result.body.push(Box::new(Node::from(buffer)));}
+        while tokens[i] == Token::NewLine { i += 1; }
+        if buffer.len() != 0 {println!("buffer = {:#?}\n", buffer); result.body.push(Box::new(Node::from(buffer)));}
     }
     return Node::FunctionDefinition(result);
 }
